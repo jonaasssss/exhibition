@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>地方记忆 | 装置艺术</title>
+    <style>
+        /* 1. 全局画布设定：纯白、无界、禁止滚动 */
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            overflow: hidden;
+            background-color: #ffffff; /* 确保整个视口是纯白底 */
+            -webkit-tap-highlight-color: transparent;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* 统一的高级宋体字形库，确保诗意质感 */
+        .serif-font {
+            font-family: "Songti SC", "STSong", "Noto Serif SC", "Georgia", serif;
+            font-weight: 300;
+            letter-spacing: 2px;
+            color: #444444; /* 深灰比纯黑更柔和优雅 */
+        }
+
+        /* ============================
+           STAGE 1: 前置序言层（闪现效果）
+           ============================ */
+        #intro-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #ffffff; /* 纯白遮罩层 */
+            z-index: 100; /* 最顶层 */
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            opacity: 1; /* 初始可见 */
+            transition: opacity 1.5s cubic-bezier(0.25, 1, 0.5, 1); /* 淡出过渡 */
+        }
+
+        .intro-text-zh {
+            font-size: 16px;
+            line-height: 2;
+            margin-bottom: 8px;
+            opacity: 0; /* 初始隐藏 */
+            /* 1秒内淡入 */
+            animation: fadeIn 1s ease forwards 0.5s; 
+        }
+
+        .intro-text-en {
+            font-size: 11px;
+            color: #888888;
+            letter-spacing: 1px;
+            opacity: 0; /* 初始隐藏 */
+            /* 稍慢于中文淡入 */
+            animation: fadeIn 1.2s ease forwards 0.8s;
+        }
+
+        /* ============================
+           STAGE 2 & 3: 主内容层（视频与诗歌）
+           ============================ */
+        #main-stage {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            opacity: 0; /* 初始隐藏，等待序言结束 */
+            transition: opacity 1.5s ease;
+            background-color: #ffffff; /* 主舞台全白底，保险 */
+        }
+
+        /* 视频容器：应用正片叠底，解决白色边界色差 */
+        .video-container {
+            width: 100%;
+            max-width: 400px;
+            aspect-ratio: 1 / 1; 
+            z-index: 1; /* 视频层级为1 */
+            position: relative; /* 核心：允许内部绝对定位物理遮挡块 */
+            background-color: #ffffff; /* 容器白底 */
+        }
+
+        video {
+            width: 100%;
+            height: 100%;
+            object-fit: contain; /* 核心：在容器内完整显示装置，不拉伸 */
+            pointer-events: none; /* 防止触摸穿透 */
+            z-index: 1; /* 视频核心内容位于层级1 */
+            /* 魔法代码：完美消除边界色差 */
+            mix-blend-mode: multiply; 
+        }
+
+        /* 水印物理遮挡块 CSS */
+        .video-overlay-block {
+            position: absolute;
+            top: 0;
+            left: 0;
+            /* 根据视频水印实际位置，微调这两个百分比数值 */
+            width: 30%; /* 物理宽度，约20-30%宽度 */
+            height: 12%; /* 物理高度，约10-15%高度 */
+            background-color: #ffffff; /* 核心：纯白背景，物理遮挡，匹配页面 */
+            z-index: 5; /* 核心：层级高于视频(1)，低于诗歌(10) */
+            pointer-events: none; /* 物理遮挡块允许触摸穿透到下面的元素 */
+        }
+
+        /* 诗歌悬浮容器 */
+        .poem-wrapper {
+            position: absolute;
+            top: 10%; /* 悬浮在视频上方，避免遮挡主要风向标结构 */
+            width: 100%;
+            z-index: 10; /* 层级最高，确保诗意浮现 */
+            opacity: 0;
+            transform: translateY(-30px); /* 初始偏上 */
+        }
+
+        /* 主舞台激活后，诗歌文字优雅降落 */
+        .main-active .poem-wrapper {
+            animation: dropDown 2.5s cubic-bezier(0.25, 1, 0.5, 1) 0.5s forwards;
+        }
+
+        .poem-float {
+            text-align: center;
+            /* 优雅悬浮动画 */
+            animation: float 6s ease-in-out infinite;
+        }
+
+        .poem-text {
+            font-size: 14px;
+            line-height: 2.2;
+            white-space: pre-line;
+        }
+
+        /* ============================
+           STAGE 4: 声音唤醒提示
+           ============================ */
+        .touch-hint {
+            position: absolute;
+            bottom: 6%;
+            width: 100%;
+            text-align: center;
+            font-family: "PingFang SC", sans-serif;
+            font-size: 11px;
+            color: #bbbbbb; /* 极浅灰 */
+            letter-spacing: 3px;
+            z-index: 20;
+            opacity: 0;
+            transition: opacity 1s ease;
+        }
+
+        /* 主舞台激活后，提示字最后亮起 */
+        .main-active .touch-hint {
+            animation: pulse 3s infinite 2s; /* 延迟2秒后开始呼吸闪烁 */
+        }
+
+        /* ============================
+           CSS 动画关键帧定义
+           ============================ */
+        
+        /* 简单淡入 */
+        @keyframes fadeIn { to { opacity: 1; } }
+        
+        /* 降落并显影 */
+        @keyframes dropDown {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* 上下优雅悬浮 */
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-6px); } /* 向上浮动 6 像素 */
+            100% { transform: translateY(0px); }
+        }
+
+        /* 提示字呼吸感 */
+        @keyframes pulse {
+            0% { opacity: 0.3; }
+            50% { opacity: 0.8; }
+            100% { opacity: 0.3; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="intro-layer">
+        <div class="intro-text-zh serif-font">你触碰到了一段地方记忆。</div>
+        <div class="intro-text-en serif-font">Touch to hear a local memory.</div>
+    </div>
+
+    <div id="main-stage">
+        <div class="poem-wrapper">
+            <div class="poem-float">
+                <div class="poem-text serif-font">院子不是一个很热闹的地方
+                    但总能让人慢慢待下来
+                    
+                    走进去，坐一下
+                    看看别人，也让别人看见你
+                </div>
+            </div>
+        </div>
+
+        <div class="video-container">
+            <div class="video-overlay-block"></div>
+            <video id="art-video" src="installation_08.mp4" autoplay muted loop playsinline></video>
+        </div>
+
+        <div class="touch-hint" id="touch-hint">轻触屏幕，聆听记忆的低语</div>
+    </div>
+
+    <audio id="bg-music" src="background_music_08.mp3" loop></audio>
+
+    <script>
+        // 自动片头编排脚本
+        window.addEventListener('DOMContentLoaded', () => {
+            const introLayer = document.getElementById('intro-layer');
+            const mainStage = document.getElementById('main-stage');
+            const video = document.getElementById('art-video');
+
+            // 3秒后（等待序言文字充分展示），开始淡出序言层
+            setTimeout(() => {
+                // 优雅地将片头序言变成透明
+                introLayer.style.opacity = '0';
+                
+                // 同时，主舞台开始显影，启动内部动画
+                mainStage.style.opacity = '1';
+                mainStage.classList.add('main-active'); // 激活CSS动画
+                video.play(); // 确保视频在白底中丝滑起播
+
+                // 完全淡出1.5秒后，移除物理遮罩层，让交互可以触碰主舞台
+                setTimeout(() => {
+                    introLayer.style.display = 'none';
+                }, 1500);
+
+            }, 3000); // 3000毫秒 = 3秒序言停留时间
+        });
+
+        // 声音解禁逻辑 (解决自动播放限制)
+        let isAudioUnlocked = false;
+
+        function unlockAudio() {
+            if (isAudioUnlocked) return;
+            const audio = document.getElementById('bg-music');
+            const hint = document.getElementById('touch-hint');
+            
+            // 将音量初始化为 0
+            audio.volume = 0; 
+            
+            // 尝试播放声音
+            let playPromise = audio.play();
+            
+            if (playPromise !== undefined) {
+                playPromise.then(_ => {
+                    isAudioUnlocked = true;
+                    // 提示文字优雅消散
+                    hint.style.animation = 'none'; 
+                    hint.style.opacity = '0';
+                    setTimeout(() => hint.style.display = 'none', 1000);
+                    
+                    // 音量丝滑渐入逻辑
+                    let currentVolume = 0;
+                    const fadeInterval = setInterval(() => {
+                        if (currentVolume < 1) {
+                            currentVolume += 0.05;
+                            // 确保音量不超过 1
+                            audio.volume = Math.min(currentVolume, 1);
+                        } else {
+                            clearInterval(fadeInterval);
+                        }
+                    }, 100); // 每100ms增加0.05，确保1秒内完成渐入
+
+                }).catch(error => {
+                    // 如果由于某些原因声音唤醒失败，在这里捕获
+                    console.log("Audio unlock failed:", error);
+                });
+            }
+        }
+
+        // 监听整个页面的点击和触摸事件，任何交互都会唤醒声音
+        document.body.addEventListener('click', unlockAudio);
+        document.body.addEventListener('touchstart', unlockAudio, {once: true});
+    </script>
+</body>
+</html>
